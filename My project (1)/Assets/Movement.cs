@@ -16,7 +16,17 @@ public class Movement : MonoBehaviour
     public bool isGrounded;
     public LayerMask layer;
     public float RayDis;
+    Vector3 hitnormal;
+    public float slideFriction;
 
+    [Header("Crouching")]
+    public float crouchHeight;
+    public bool isCrouching;
+
+
+
+    ///Input floats
+    float x, z;
 
 
     void Start()
@@ -29,7 +39,7 @@ public class Movement : MonoBehaviour
     {
         _Movement();
         _Gravity();
-
+        _crouching();
 
     }
 
@@ -44,12 +54,12 @@ public class Movement : MonoBehaviour
         if (isGrounded && Input.GetButtonDown("Jump"))
         {
             Velocity2.y = Mathf.Sqrt(-2f * Gravity * Jumpspeed);
-
         }
-
+        //Gravity
         Velocity2.y += Gravity * Time.deltaTime;
 
         CC.Move(Velocity2 * Time.deltaTime);
+        isGrounded = (Vector3.Angle(Vector3.up, hitnormal) <= CC.slopeLimit);
 
 
 
@@ -57,15 +67,60 @@ public class Movement : MonoBehaviour
 
     void _Movement()
     {   //Storing Input
-        float x = Input.GetAxis("Horizontal");
-        float z = Input.GetAxis("Vertical");
+        x = Input.GetAxis("Horizontal");
+        z = Input.GetAxis("Vertical");
 
 
-        Velocity = x * transform.right + z * transform.forward;
+
+        Velocity = isCrouching ? transform.forward * 1.5f : x * transform.right + z * transform.forward;
+        if (isGrounded)
+        {
+            float x = (1f - hitnormal.y) * hitnormal.x * (Gravity - slideFriction);
+            float z = (1f - hitnormal.y) * hitnormal.z * (Gravity - slideFriction);
+
+            Velocity += new Vector3(x, 0, z);
+
+
+        }
 
         //Adding movement;
         CC.Move(Velocity * MoveSpeed * Time.deltaTime);
 
-
+        MoveSpeed = Mathf.Clamp(MoveSpeed, 0f, Mathf.Infinity);
     }
+    void _crouching()
+    {
+
+
+
+        if (isGrounded && Input.GetKeyDown(KeyCode.C))
+        {
+
+
+            isCrouching = true;
+        }
+        if (isCrouching)
+        {
+            MoveSpeed -= MoveSpeed / 1.4f * Time.deltaTime;
+
+            if (isGrounded && Input.GetButtonDown("Jump"))
+            {
+                MoveSpeed += 2.5f;
+            }
+
+        }
+
+
+
+        CC.height = isCrouching ? crouchHeight : 2f;
+    }
+
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        hitnormal = hit.normal;
+    }
+
+
+
 }
