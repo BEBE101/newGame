@@ -5,36 +5,57 @@ using UnityEngine;
 
 public class Movement : MonoBehaviour
 {
-
-    CharacterController CC;
-    Vector3 Velocity, Velocity2;
-    public float Gravity, MoveSpeed, JumpHeight;
+    [HideInInspector]
+    public CharacterController CC;
+    public float MoveSpeed, JumpHeight;
     [Range(0, 50f)]
-    public float MovementSnapiness;
+    public float MovementSnapiness, AirSnapiness;
 
-
+    [Space]
     [Header("Gravity")]
-
+    public float Gravity;
     public bool isGrounded;
     public LayerMask layer;
-    public float RayDis;
+    public Transform GroundChecker;
+    public float GroundCheck;
+    public float crouchGroundCheck;
     Vector3 hitnormal;
     public float slideFriction;
+    float GroundCheckRadius;
 
+
+    [Space]
     [Header("Crouching")]
     public float crouchHeight;
+    public float MinSlideSpeed, MaxSlideSpeed, CrouchSlowTime;
     public bool isCrouching;
 
     float crouchSlide;
 
 
 
+    [HideInInspector]
+    public bool CanMove;
+    [HideInInspector]
+    public Vector3 Velocity, Velocity2;
+    Vector3 Cube;
+
     ///Input floats
     float x, z;
 
+    //Movement slow speed in air
+    float GroundSmoothness, AirSmoothness;
+
 
     void Start()
-    {
+    {   ////Gravity
+        GroundCheckRadius = isCrouching ? crouchGroundCheck : GroundCheck;
+        GroundSmoothness = MovementSnapiness;
+        AirSmoothness = AirSnapiness;
+
+        Cube = Vector3.one / 2f;
+
+        CanMove = true;
         CC = GetComponent<CharacterController>();
     }
 
@@ -45,25 +66,35 @@ public class Movement : MonoBehaviour
         _Gravity();
         _crouching();
         SlopeSliding();
+
+
+
     }
 
 
 
     void _Gravity()
     {
-        isGrounded = Physics.Raycast(transform.position, -transform.up, RayDis, layer);
+        isGrounded = Physics.CheckBox(GroundChecker.position, Cube, Quaternion.identity, layer);
+
+
+        if (isCrouching) GroundChecker.localPosition = new Vector3(0, -0.312f, 0);
+        else GroundChecker.localPosition = new Vector3(0, -0.82f, 0);
+
+
 
 
         if (isGrounded && Velocity2.y < 0) { Velocity2.y = Mathf.Lerp(Velocity2.y, -2f, 20f * Time.deltaTime); }
+
         //jumping
-        if (isGrounded && Input.GetButtonDown("Jump"))
-        {
-            Velocity2.y = Mathf.Sqrt(-2f * Gravity * JumpHeight);
-        }
+        if (isGrounded && Input.GetButtonDown("Jump")) Velocity2.y = Mathf.Sqrt(-2f * Gravity * JumpHeight);
+
+
+
         //Gravity
         Velocity2.y += Gravity * Time.deltaTime;
-
         CC.Move(Velocity2 * Time.deltaTime);
+
 
 
 
@@ -71,16 +102,22 @@ public class Movement : MonoBehaviour
     }
 
     void _Movement()
-    {   //Storing Input
+    {
+        //Movement Snapiness
+        MovementSnapiness = isGrounded ? GroundSmoothness : AirSmoothness;
+
+
+        //Storing Input
         x = Input.GetAxisRaw("Horizontal");
         z = Input.GetAxisRaw("Vertical");
 
         //Slide power calculation
-        if (x != 0 || z != 0) crouchSlide = 1.3f;
-        else crouchSlide = 0.6f;
+        if (x != 0 || z != 0) crouchSlide = MaxSlideSpeed;
+        else crouchSlide = MinSlideSpeed;
 
         //running velocity smoothing
         Vector3 vel = Vector3.Lerp(Velocity, (x * transform.right + z * transform.forward).normalized, Time.deltaTime * MovementSnapiness);
+
 
         //velocity changing while crouching and running
         Velocity = isCrouching ? (transform.forward).normalized * crouchSlide : vel;
@@ -88,35 +125,29 @@ public class Movement : MonoBehaviour
 
 
         //Adding movement;
-        CC.Move(Velocity * MoveSpeed * Time.deltaTime);
-
+        if (CanMove) CC.Move(Velocity * MoveSpeed * Time.deltaTime);
         MoveSpeed = Mathf.Clamp(MoveSpeed, 0f, Mathf.Infinity);
+
+
     }
     void _crouching()
     {
 
 
 
-        if (isGrounded && Input.GetKey(KeyCode.LeftControl))
-        {
-
-            isCrouching = true;
-        }
+        if (isGrounded && Input.GetKey(KeyCode.LeftControl)) isCrouching = true;
         if (isCrouching)
         {
-            MoveSpeed = Mathf.Lerp(MoveSpeed, 0f, Time.deltaTime * 1.2f);
+            MoveSpeed = Mathf.Lerp(MoveSpeed, 0f, Time.deltaTime * CrouchSlowTime);
 
-            if (isGrounded && Input.GetButtonDown("Jump"))
-            {
-                MoveSpeed += 2.5f;
-            }
+            if (isGrounded && Input.GetButtonDown("Jump")) MoveSpeed += 2.5f;
 
         }
-        else
-        {
-            MoveSpeed = 8f;
+        else MoveSpeed = 8f;
 
-        }
+
+
+
 
         CC.Move((x * transform.right + transform.forward * z).normalized * Time.deltaTime);
 
@@ -124,15 +155,15 @@ public class Movement : MonoBehaviour
         //Adding changes while crouching
         JumpHeight = isCrouching ? 1f : 2f; ;
         CC.height = isCrouching ? crouchHeight : 2f;
-        RayDis = isCrouching ? 0.8f : 1.2f;
-        slideFriction = isCrouching ? -500f : -150f;
+        GroundCheckRadius = isCrouching ? crouchGroundCheck : GroundCheck;
+        slideFriction = isCrouching ? -690.420f : -300f;
 
 
-        if (isCrouching && Input.GetKeyUp(KeyCode.LeftControl))
-        {
-            isCrouching = false;
+        if (isCrouching && Input.GetKeyUp(KeyCode.LeftControl)) isCrouching = false;
 
-        }
+
+
+
 
     }
 
@@ -142,7 +173,7 @@ public class Movement : MonoBehaviour
         //getting the slope angle
 
         RaycastHit hit;
-        Physics.Raycast(transform.position, -transform.up, out hit, RayDis, layer);
+        Physics.Raycast(transform.position, -transform.up, out hit, GroundCheck, layer);
         hitnormal = hit.normal;
         float angle = Vector3.Angle(hit.normal, Vector3.up);
 
@@ -160,7 +191,10 @@ public class Movement : MonoBehaviour
         }
     }
 
-
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawCube(GroundChecker.position, Cube * 2f);
+    }
 
 
 
