@@ -22,18 +22,27 @@ public class MeleeAttacks : MonoBehaviour
 
 
 
-
+    [Space]
+    [Space]
+    public GameObject SlamPart;
+    public ParticleSystem FastParticle, SlamParticle;
+    public Camera cam;
+    public float FoVChange, LerpTime;
 
 
     Movement Player;
-    float time, damage, dis;
+    float time, damage, dis, InitialFoV;
 
 
 
 
     private void Start()
     {
+        SlamParticle = SlamPart.GetComponent<ParticleSystem>();
+        InitialFoV = cam.fieldOfView;
         Player = FindObjectOfType<Movement>();
+        FastParticle.Stop();
+
     }
     private void Update()
     {
@@ -42,6 +51,8 @@ public class MeleeAttacks : MonoBehaviour
 
         if (isSlicing) SliceMove(time);
         else return;
+
+
     }
 
 
@@ -53,6 +64,7 @@ public class MeleeAttacks : MonoBehaviour
             SlicePoint.localPosition = new Vector3(0, 0, SliceDis);
             isSlicing = true;
             time = Time.time + SliceMaxTime;
+            StartCoroutine(fovFX());
 
         }
 
@@ -71,6 +83,10 @@ public class MeleeAttacks : MonoBehaviour
         //Motion
         Vector3 move = (SlicePoint.position - transform.position).normalized;
         Player.CC.Move(move * Sped * SliceSpeed * Time.deltaTime);
+
+
+        //Particles
+
 
 
         //Stopping
@@ -92,7 +108,8 @@ public class MeleeAttacks : MonoBehaviour
             sped = Mathf.Clamp(sped, 0, Mathf.Infinity);
             Player.Velocity = transform.forward * sped;
 
-            if (sped < 0.5f) CancelInvoke("LastMove");
+
+            if (sped < 0.5f) CancelInvoke("LastMove"); FastParticle.Stop();
 
         }
     }
@@ -116,7 +133,8 @@ public class MeleeAttacks : MonoBehaviour
     }
     void SlamMove()
     {
-        float speed = Mathf.Lerp(0, SlamSpeed, GroundDis * SlamSpeedLerpTime * Time.deltaTime);
+        float speed = Mathf.Lerp(0, SlamSpeed, SlamSpeedLerpTime * Time.deltaTime);
+
         Player.CC.Move(Vector3.down.normalized * 10f * speed * Time.deltaTime);
         Player.CanMove = false;
 
@@ -127,9 +145,15 @@ public class MeleeAttacks : MonoBehaviour
         float dis = hit.distance;
 
 
-        if (dis < 1.4f) StopMotion();
-        Invoke("StopMotion", SlamStopTime);
+        if (dis < 1.4f)
+        {
+            StartCoroutine(SlamFx());
 
+            Invoke("StopMotion", SlamStopTime);
+
+
+
+        }
 
     }
 
@@ -139,11 +163,46 @@ public class MeleeAttacks : MonoBehaviour
         isSlicing = false;
         Player.CanMove = true;
 
-        if (Player.isGrounded && Input.GetButtonDown("Jump")) Player.Velocity2.y = Mathf.Sqrt(-2f * Player.Gravity * Player.JumpHeight);
+
+
+
+
+
+
+    }
+    IEnumerator SlamFx()
+    {
+        GameObject part = Instantiate(SlamPart, transform);
+        part.transform.localPosition = new Vector3(0, -0.8f, 0);
+        SlamParticle = part.GetComponent<ParticleSystem>();
+
+        yield return new WaitForSeconds(0.002f);
+
+        part.transform.SetParent(null);
+        SlamParticle.Play();
+        yield return new WaitForSeconds(0.1f);
+        SlamParticle.Stop();
+        Destroy(part, 0.2f);
 
     }
 
 
+
+    IEnumerator fovFX()
+    {
+
+        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, FoVChange, LerpTime * Time.deltaTime);
+        FastParticle.Play();
+
+        yield return new WaitForSeconds(0.8f);
+
+        FastParticle.Stop();
+        yield return new WaitForSeconds(0.2f);
+        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, InitialFoV, 2f / LerpTime * Time.deltaTime);
+
+
+
+    }
 
 
 }
