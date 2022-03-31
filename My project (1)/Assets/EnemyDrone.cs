@@ -5,25 +5,26 @@ using UnityEngine;
 public class EnemyDrone : MonoBehaviour
 {
 
-    public float _speed, _speedMultiplier, StopTimeWhenHit, MaxHeight;
+    public float _speed, _speedMultiplier, MaxHeight;
     public float _MovementSnapiness;
 
     [Space]
     public float RotationSlerp, PlayerCheckRadius;
+    [Range(-1, 100)]
     public int Health;
     public Rigidbody rb;
 
 
     [Space]
     public LayerMask PlayerLayer;
-    public Transform[] MovePlaces;
-
+    public Transform[] DetachObjs;
+    public GameObject DestroyedMesh;
 
     public enum state { Attack, Dead }
     state State;
 
     [Space]
-    public float _propellerSpeed;
+    public float _propellerSpeed, StopTimeWhenHit;
     public Material _eyeMat;
     public ParticleSystem _floatingParticles, _floatingParticles2;
 
@@ -31,14 +32,22 @@ public class EnemyDrone : MonoBehaviour
     Transform DroneChild, Player;
     Vector3 SampleMove, Move;
     bool isFound, canMove;
+    Material EyeGkow;
 
     // Start is called before the first frame update
+
+    private void Awake()
+    {
+
+    }
+
     void Start()
     {
         canMove = true;
         State = state.Attack;
         Player = FindObjectOfType<Movement>().transform;
         DroneChild = transform.GetChild(0);
+        EyeGkow.color = _eyeMat.color;
 
     }
 
@@ -71,10 +80,15 @@ public class EnemyDrone : MonoBehaviour
                 AttackPlayer();
                 break;
             case state.Dead:
+                Die();
+
                 break;
 
         }
-
+        if (Health <= 0f)
+        {
+            State = state.Dead;
+        }
 
 
     }
@@ -96,9 +110,9 @@ public class EnemyDrone : MonoBehaviour
             _propellerSpeed = 400f;
             _floatingParticles.Play();
             _floatingParticles2.Play();
+            _eyeMat.SetColor("_EmissionColor", new Color(191f, 6f, 0f) * 0.06f);
 
-
-            if (Dis > 5f) rb.velocity = SampleMove * _speed * _speedMultiplier * 20f * Time.deltaTime;
+            if (Dis > 2f) rb.velocity = SampleMove * _speed * _speedMultiplier * 20f * Time.deltaTime;
 
             if (!Physics.Raycast(transform.position, Vector3.down, MaxHeight)) rb.useGravity = true;
             else { rb.useGravity = false; }
@@ -106,6 +120,7 @@ public class EnemyDrone : MonoBehaviour
         else
         {
             //Fx
+            _eyeMat.SetColor("_EmissionColor", Color.black);
             _propellerSpeed = Mathf.Lerp(_propellerSpeed, 0, 15f * Time.deltaTime);
             _floatingParticles.Stop();
             _floatingParticles2.Stop();
@@ -147,4 +162,24 @@ public class EnemyDrone : MonoBehaviour
 
 
 
+    public void TakeDamage(int DamageAmnt)
+    {
+        Health = Health - DamageAmnt;
+
+
+    }
+
+
+
+    void Die()
+    {
+        Destroy(this.gameObject);
+
+
+    }
+    private void OnDestroy()
+    {
+        Instantiate(DestroyedMesh, transform.position, transform.rotation);
+
+    }
 }
