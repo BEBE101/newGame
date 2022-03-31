@@ -30,9 +30,18 @@ public class MeleeAttacks : MonoBehaviour
     public float FoVChange, LerpTime;
 
 
-    Movement Player;
-    float time, damage, dis, InitialFoV;
 
+    [Header("Cube Throw")]
+    public float _throwForce;
+    public float _throwRate;
+    public GameObject Cube;
+    public Transform PickObj;
+
+
+
+    Movement Player;
+    static float time, damage, dis, InitialFoV;
+    bool canThrowCube;
 
 
 
@@ -42,15 +51,22 @@ public class MeleeAttacks : MonoBehaviour
         InitialFoV = cam.fieldOfView;
         Player = FindObjectOfType<Movement>();
         FastParticle.Stop();
+        canThrowCube = true;
 
     }
     private void Update()
     {
+        ThrowCube();
+        InitialFoV = Mathf.Clamp(InitialFoV, 60f, 135f);
+        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, InitialFoV, Time.deltaTime * 5f);
+
+
         if (Player.isGrounded) Slice();
         else GroundSlam();
 
         if (isSlicing) SliceMove(time);
         else return;
+        fovFX();
 
 
     }
@@ -62,9 +78,10 @@ public class MeleeAttacks : MonoBehaviour
         {
 
             SlicePoint.localPosition = new Vector3(0, 0, SliceDis);
+            canThrowCube = false;
             isSlicing = true;
             time = Time.time + SliceMaxTime;
-            StartCoroutine(fovFX());
+
 
         }
 
@@ -107,7 +124,7 @@ public class MeleeAttacks : MonoBehaviour
             sped = sped - 3f * Time.deltaTime;
             sped = Mathf.Clamp(sped, 0, Mathf.Infinity);
             Player.Velocity = transform.forward * sped;
-
+            canThrowCube = true;
 
             if (sped < 0.5f) CancelInvoke("LastMove"); FastParticle.Stop();
 
@@ -121,7 +138,7 @@ public class MeleeAttacks : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F))
         {
             isSlamingGround = true;
-
+            canThrowCube = false;
             RaycastHit hit;
             Physics.Raycast(transform.position, Vector3.down, out hit, Mathf.Infinity);
             GroundDis = hit.distance;
@@ -134,7 +151,7 @@ public class MeleeAttacks : MonoBehaviour
     void SlamMove()
     {
         float speed = Mathf.Lerp(0, SlamSpeed, SlamSpeedLerpTime * Time.deltaTime);
-
+        time = Time.time + 2f;
         Player.CC.Move(Vector3.down.normalized * 10f * speed * Time.deltaTime);
         Player.CanMove = false;
 
@@ -145,7 +162,7 @@ public class MeleeAttacks : MonoBehaviour
         float dis = hit.distance;
 
 
-        if (dis < 1.4f)
+        if (dis < 1.4f || time > Time.time)
         {
             StartCoroutine(SlamFx());
 
@@ -175,34 +192,78 @@ public class MeleeAttacks : MonoBehaviour
         GameObject part = Instantiate(SlamPart, transform);
         part.transform.localPosition = new Vector3(0, -0.8f, 0);
         SlamParticle = part.GetComponent<ParticleSystem>();
-
+        StartCoroutine(SlamCamMove());
         yield return new WaitForSeconds(0.002f);
 
         part.transform.SetParent(null);
         SlamParticle.Play();
         yield return new WaitForSeconds(0.1f);
+
+        canThrowCube = true;
         SlamParticle.Stop();
         Destroy(part, 0.2f);
 
     }
-
-
-
-    IEnumerator fovFX()
+    IEnumerator SlamCamMove()
     {
+        LeanTween.moveLocalY(Cam.gameObject, Cam.localPosition.y - 0.2f, 0.3f).setEaseInBounce();
+        yield return new WaitForSeconds(0.3f);
+        LeanTween.moveLocalY(Cam.gameObject, 0.52f, 0.5f).setEaseInBounce();
+    }
 
-        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, FoVChange, LerpTime * Time.deltaTime);
-        FastParticle.Play();
 
-        yield return new WaitForSeconds(0.8f);
 
-        FastParticle.Stop();
-        yield return new WaitForSeconds(0.2f);
-        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, InitialFoV, 2f / LerpTime * Time.deltaTime);
+    void fovFX()
+    {
+        if (isSlicing)
+        {
+            cam.fieldOfView = LeanTween.easeOutExpo(cam.fieldOfView, FoVChange, LerpTime * Time.deltaTime);
+
+            FastParticle.Play();
+        }
+        else
+        {
+
+
+
+            FastParticle.Stop();
+
+
+        }
+
 
 
 
     }
+
+
+
+
+
+
+
+    void ThrowCube()
+    {
+
+        float Rate = 0f;
+
+
+
+
+        if (canThrowCube && Input.GetKeyDown(KeyCode.T) && Rate < Time.time)
+        {
+            GameObject projectile = Instantiate(Cube, PickObj.position, Quaternion.identity);
+            Rigidbody projectileRB = projectile.GetComponent<Rigidbody>();
+
+            projectileRB.AddForce(Cam.forward * _throwForce * 30f * Time.fixedDeltaTime, ForceMode.Impulse);
+            projectileRB.AddRelativeTorque(Cam.forward * Random.Range(-_throwForce, _throwForce) * Time.deltaTime, ForceMode.Impulse);
+            canThrowCube = false;
+            Destroy(projectile, 5f);
+            Invoke("ResetThrow", _throwRate);
+        }
+
+    }
+    void ResetThrow() { canThrowCube = true; }
 
 
 }
