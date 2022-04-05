@@ -13,7 +13,7 @@ public class RandomForce : MonoBehaviour
         rb.AddForce(transform.right * Random.Range(-speed, speed) * Time.fixedDeltaTime, ForceMode.Impulse);
         rb.AddForce(transform.up * Random.Range(-speed, speed) * Time.fixedDeltaTime, ForceMode.Impulse);
         rb.AddForce(transform.forward * Random.Range(-speed, speed) * Time.fixedDeltaTime, ForceMode.Impulse);
-
+        Destroy(gameObject, 4f);
     }
     // Update is called once per frame
 

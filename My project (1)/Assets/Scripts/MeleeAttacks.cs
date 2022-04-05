@@ -25,7 +25,7 @@ public class MeleeAttacks : MonoBehaviour
     [Space]
     [Space]
     public GameObject SlamPart;
-    public ParticleSystem FastParticle, SlamParticle;
+    public ParticleSystem FastParticle;
     public Camera cam;
     public float FoVChange, LerpTime;
 
@@ -38,17 +38,17 @@ public class MeleeAttacks : MonoBehaviour
     public Transform PickObj;
 
 
-
+    ParticleSystem SlamParticle;
     Movement Player;
     static float time, damage, dis, InitialFoV;
     bool canThrowCube;
 
 
 
-    private void Start()
+    private void Awake()
     {
         SlamParticle = SlamPart.GetComponent<ParticleSystem>();
-        InitialFoV = cam.fieldOfView;
+        InitialFoV = FindObjectOfType<CamMove>().InitialFoV;
         Player = FindObjectOfType<Movement>();
         FastParticle.Stop();
         canThrowCube = true;
@@ -57,12 +57,12 @@ public class MeleeAttacks : MonoBehaviour
     private void Update()
     {
         ThrowCube();
-        InitialFoV = Mathf.Clamp(InitialFoV, 60f, 135f);
-        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, InitialFoV, Time.deltaTime * 5f);
+
+
 
 
         if (Player.isGrounded) Slice();
-        else GroundSlam();
+        //  else GroundSlam();
 
         if (isSlicing) SliceMove(time);
         else return;
@@ -131,7 +131,7 @@ public class MeleeAttacks : MonoBehaviour
         }
     }
 
-
+    /*
 
     void GroundSlam()
     {
@@ -211,28 +211,17 @@ public class MeleeAttacks : MonoBehaviour
         LeanTween.moveLocalY(Cam.gameObject, 0.52f, 0.5f).setEaseInBounce();
     }
 
-
+    */
 
     void fovFX()
     {
         if (isSlicing)
         {
             cam.fieldOfView = LeanTween.easeOutExpo(cam.fieldOfView, FoVChange, LerpTime * Time.deltaTime);
-
             FastParticle.Play();
-        }
-        else
-        {
-
-
-
-            FastParticle.Stop();
-
 
         }
-
-
-
+        else FastParticle.Stop();
 
     }
 

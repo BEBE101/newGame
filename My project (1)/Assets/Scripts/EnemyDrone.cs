@@ -112,7 +112,7 @@ public class EnemyDrone : MonoBehaviour
             _floatingParticles2.Play();
             _eyeMat.SetColor("_EmissionColor", new Color(191f, 6f, 0f) * 0.06f);
 
-            if (Dis > 2f) rb.velocity = SampleMove * _speed * _speedMultiplier * 20f * Time.deltaTime;
+            if (Dis > 2f) rb.velocity = SampleMove * _speed * _speedMultiplier * 6f * Time.fixedDeltaTime;
 
             if (!Physics.Raycast(transform.position, Vector3.down, MaxHeight)) rb.useGravity = true;
             else { rb.useGravity = false; }
@@ -139,8 +139,9 @@ public class EnemyDrone : MonoBehaviour
             //stops following player
             canMove = false;
 
-            //adding gravity
+            //adding gravity and increasing mass for bullet force
             rb.useGravity = true;
+            rb.mass = 69f;
 
             ///Adding random rotation when hit with cube
             rb.AddTorque(transform.up * Random.Range(-400f, 400f) * 2000f * Time.deltaTime, ForceMode.Impulse);
@@ -156,6 +157,7 @@ public class EnemyDrone : MonoBehaviour
     {
         //Starts to follow Player
         canMove = true;
+        rb.mass = 1f;
         rb.useGravity = false;
         LeanTween.moveY(this.gameObject, transform.position.y + 2f, 0.7f).setEaseOutCubic();
     }
@@ -173,13 +175,14 @@ public class EnemyDrone : MonoBehaviour
 
     void Die()
     {
+        for (int i = 0; i < 1; i++)
+        {
+            Instantiate(DestroyedMesh, transform.position, transform.rotation);
+        }
         Destroy(this.gameObject);
 
 
     }
-    private void OnDestroy()
-    {
-        Instantiate(DestroyedMesh, transform.position, transform.rotation);
 
-    }
+
 }

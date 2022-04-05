@@ -5,16 +5,19 @@ using UnityEngine;
 public class CamMove : MonoBehaviour
 {
     public Transform Player;
+    public Camera cam;
+    public float InitialFoV;
+
 
     [Range(30, 3000)]
     public float Sensitivity;
-    float xRotation;
     public Vector3 Offset;
-
+    float xRotation;
 
     // Start is called before the first frame update
     void Start()
     {
+        InitialFoV = cam.fieldOfView;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -23,9 +26,11 @@ public class CamMove : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        cam.fieldOfView = Mathf.Lerp(cam.fieldOfView, InitialFoV, Time.deltaTime * 2f);
+
+
         float x = Input.GetAxis("Mouse X") * Sensitivity * Time.deltaTime;
         float y = Input.GetAxis("Mouse Y") * Sensitivity * Time.deltaTime;
-
 
 
 
