@@ -23,7 +23,7 @@ public class GunSway : MonoBehaviour
 
 
 
-
+    Transform gunBarrel;
     Movement moveScript;
     Vector3 CurrentSway, SwaySnapiness, RotationSnappiness, RotationSway;
     Recoil camShakeScript;
@@ -73,6 +73,8 @@ public class GunSway : MonoBehaviour
 
     public void recoil(float xRotation, float upRotation, float zMove)
     {
+
+
         float randomX = Random.Range(-xRotation, xRotation);
         RotationSnappiness += new Vector3(-upRotation, randomX);
         SwaySnapiness += new Vector3(-randomX / 10f, 0, -zMove);

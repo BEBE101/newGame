@@ -26,7 +26,7 @@ public class EnemyDrone : MonoBehaviour
     [Space]
     public float _propellerSpeed, StopTimeWhenHit;
     public Material _eyeMat;
-    public ParticleSystem _floatingParticles, _floatingParticles2;
+    public ParticleSystem _floatingParticles, _floatingParticles2, _explosionParticle;
 
 
     Transform DroneChild, Player;
@@ -80,7 +80,7 @@ public class EnemyDrone : MonoBehaviour
                 AttackPlayer();
                 break;
             case state.Dead:
-                Die();
+                StartCoroutine(Die());
 
                 break;
 
@@ -111,8 +111,13 @@ public class EnemyDrone : MonoBehaviour
             _floatingParticles.Play();
             _floatingParticles2.Play();
             _eyeMat.SetColor("_EmissionColor", new Color(191f, 6f, 0f) * 0.06f);
+            _eyeMat.color = Color.white;
 
             if (Dis > 2f) rb.velocity = SampleMove * _speed * _speedMultiplier * 6f * Time.fixedDeltaTime;
+            else
+            {
+                StartCoroutine(Die());
+            }
 
             if (!Physics.Raycast(transform.position, Vector3.down, MaxHeight)) rb.useGravity = true;
             else { rb.useGravity = false; }
@@ -120,6 +125,7 @@ public class EnemyDrone : MonoBehaviour
         else
         {
             //Fx
+            _eyeMat.color = Color.white;
             _eyeMat.SetColor("_EmissionColor", Color.black);
             _propellerSpeed = Mathf.Lerp(_propellerSpeed, 0, 15f * Time.deltaTime);
             _floatingParticles.Stop();
@@ -173,16 +179,33 @@ public class EnemyDrone : MonoBehaviour
 
 
 
-    void Die()
+    IEnumerator Die()
     {
         for (int i = 0; i < 1; i++)
         {
-            Instantiate(DestroyedMesh, transform.position, transform.rotation);
+            if (Health > 2)
+            {
+                _eyeMat.SetColor("_EmissionColor", new Color(77, 191, 68) * 0.1f);
+                yield return new WaitForSecondsRealtime(0.5f);
+
+                Instantiate(DestroyedMesh, transform.position, transform.rotation);
+                death();
+            }
+            else death();
+
         }
-        Destroy(this.gameObject);
+
 
 
     }
+    void death()
+    {
 
 
+
+        _explosionParticle.transform.SetParent(null);
+        _explosionParticle.Play();
+        Destroy(_explosionParticle, 3f);
+        Destroy(this.gameObject);
+    }
 }

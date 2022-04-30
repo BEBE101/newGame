@@ -9,7 +9,8 @@ public class GunScript : MonoBehaviour
     public Transform Cam, Muzzle;
 
 
-    public float fireRate, Damage;
+    public float fireRate;
+    public int Damage;
     public bool isAutoGun;
 
     [Range(1, 100)]
@@ -20,6 +21,11 @@ public class GunScript : MonoBehaviour
     [Space]
     [Header("Recoil")]
     public GunInfoHolder gunInfo;
+    public Transform _gunBarrel;
+    public float barrelMovePos;
+
+    [Space]
+    public ParticleSystem MuzzleFlash;
 
 
     Ray ray;
@@ -33,7 +39,7 @@ public class GunScript : MonoBehaviour
     void Start()
     {
 
-
+        MuzzleFlash.Stop();
         ray = Camera.main.ViewportPointToRay(Cam.position);
         recoilScript = FindObjectOfType<GunSway>();
 
@@ -55,6 +61,7 @@ public class GunScript : MonoBehaviour
 
         if (isShooting && bulletsLeft > 0 && !isReloading && canShoot)
         {
+            canShoot = false;
             StartCoroutine(Shooot());
 
         }
@@ -66,18 +73,20 @@ public class GunScript : MonoBehaviour
 
     IEnumerator Shooot()
     {
-        canShoot = false;
+        MuzzleFlash.Play();
         Invoke("ResetShooting", fireRate);
 
         for (int i = 0; i < bulletsPerShot; i++)
         {
             GameObject projectile = Instantiate(Bullet, Muzzle.position, Quaternion.identity);
-            projectile.GetComponent<Rigidbody>().AddForce(Muzzle.right * 26000f * Time.fixedDeltaTime, ForceMode.Impulse);
+            projectile.GetComponent<Rigidbody>().AddForce(Muzzle.right * 13000f * Time.fixedDeltaTime, ForceMode.VelocityChange);
+            projectile.GetComponent<BulletDamage>().damageValue = Damage;
 
 
             //Recoil
             Destroy(projectile, 15f);
             recoilScript.recoil(xRotation, yRotation, zMove);
+            _gunBarrel.LeanMoveLocalZ(barrelMovePos, 0.02f).setOnComplete(vruhj);
             yield return new WaitForSecondsRealtime(timeBetweenShot);
 
 
@@ -85,6 +94,12 @@ public class GunScript : MonoBehaviour
 
 
     }
+
+    void vruhj()
+    {
+        _gunBarrel.LeanMoveLocalZ(0, 0.1f).setEaseInBack();
+    }
+
 
     private void ResetShooting()
     { canShoot = true; }

@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gunName: Silenced Pistol
   xRecoil: 0.2
-  yRecoil: 13.92
-  zMove: 0.12
+  yRecoil: 18.1
+  zMove: 0.21
